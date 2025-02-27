@@ -1,18 +1,25 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { Buffer } from 'buffer';
+
+export interface Env {
+	AI: Ai;
+}
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
+	async fetch(request: Request, env: Env): Promise<Response> {
+		const blob = await request.arrayBuffer();
+
+		const input = {
+			audio: Buffer.from(blob).toString('base64'),
+			language: 'ja',
+			vad_filter: 'true',
+			initial_prompt: `あのイーハトーヴォのすきとおった風、夏でも底に冷たさをもつ青いそら、うつくしい森で飾られたモリーオ市、郊外のぎらぎらひかる草の波。`
+		};
+
+		const response = await env.AI.run(
+			'@cf/openai/whisper-large-v3-turbo',
+			input
+		);
+
+		return Response.json(response);
 	},
-} satisfies ExportedHandler<Env>;
+};
